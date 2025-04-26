@@ -1,0 +1,162 @@
+head {
+  background-image: url("bg.png");
+}
+
+body{
+  background-image: url("bg.png");
+/*  margin: 0px auto;
+  max-width: 480px;*/
+}
+
+.container {
+  margin: 80px auto;
+  max-width: 600px;
+}
+
+video, img, figure {
+  /* override other styles to make responsive */
+  width: 100%; /*    !important;*/
+  height: auto   !important;
+  margin: 20px 0px 4px;
+  border-radius: 8px;
+}
+
+figcaption {
+  font-family: noto-sans, sans-serif;
+  font-size: 14px;
+  color: #757575;
+  margin-bottom: 24px;
+}
+
+h1 {
+  font-family: plantin, serif;
+  font-weight: 600;
+  font-size: 42px;
+  color: #020202;
+  /*margin-top 19 em;*/
+  margin-bottom: 0.2em;
+}
+
+h2 {
+  font-family: plantin, serif;
+  font-weight: 300;
+  font-size: 22px;
+  color: #020202;
+  margin-top: 1.8em;
+  margin-bottom: 0.2em;
+}
+
+p, ul {
+  font-family: noto-sans, sans-serif;
+  font-size: 18px;
+  font-weight: 200;
+  color: #6b6b6b;
+  margin-top: 0em;
+  margin-bottom: 1em;
+}
+
+#adr{
+  margin-top: 0px;
+  padding-top: 0px;
+  width: 80%;
+  opacity: 0.85;
+  max-width: 240px;
+}
+
+.footer {
+  color:rgba(140, 140, 140);
+  bottom: 0px;
+  font-size: 9pt;
+  font-family: Sans-serif;
+  font-weight: lighter;
+  height: 2em;
+  margin-top: 1em 0;
+  text-align: center;
+}
+
+
+a:link {
+  font-weight: 300;
+  text-decoration: none;
+}
+/*
+a.style1 {
+  color: #F47BEF;
+}
+
+a.style2 {
+  color: #7A9BF7;
+}
+
+a.style3 {
+  color: #f5bb3a;
+}
+
+a.style4{
+  color: #fab54d;
+}
+*/
+
+a.style1 {
+  color: #F0C94A;
+}
+
+a.style2 {
+  color: #2a6bcc;
+}
+
+a.style3 {
+  color: #8B0000;
+}
+
+a.style4{
+  color: #FAB95F;
+}
+a.mealmoodstyle{
+  color: #52c134;
+}
+
+a.no_style{
+  color: inherit;
+}
+
+a.no_style:visited{
+  text-decoration: none;
+}
+
+/*
+#A6767E
+#78ABBF
+#F27A5E
+#F26B5E
+#BF6060
+*/
+
+a.style_back {
+  color: #757575;
+  font-weight: 600;
+  font-family: noto-sans, sans-serif;
+  font-size: 18px;
+}
+
+
+a:visited {
+  text-decoration: none;
+}
+
+
+a:hover {
+  text-decoration: underline;
+}
+
+a:active {
+  text-decoration: none;
+}
+
+
+@media screen and (max-width: 600px){
+  body{
+    margin: 12px auto;
+    width: 90%;
+  }
+}
