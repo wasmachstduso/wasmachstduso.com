@@ -1,0 +1,17 @@
+[
+    {
+      "title": "Zweiter Post",
+      "author": "Elias",
+      "date": "Sonntag, 04. Mai 2025",
+      "image": "./assets/images/20250504/houses.jpeg",
+      "link": "./posts/Title_04052025.html"
+    },
+    {
+      "title": "Erster Post",
+      "author": "Mara",
+      "date": "Freitag, 02. Mai 2025",
+      "image": "./assets/images/20250504/cake.jpeg",
+      "link": "./posts/Title_02052025.html"
+    }
+  ]
+  

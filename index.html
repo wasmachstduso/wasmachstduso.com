@@ -1,43 +1,43 @@
 <!DOCTYPE html>
-<html>
-    <head>
-    <link rel="stylesheet" href="https://use.typekit.net/vya7gle.css">
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <link rel="icon" href="favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>was machst du so?</title>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://use.typekit.net/vya7gle.css">
+  <link rel="stylesheet" type="text/css" href="./assets/css/style.css">
+  <link rel="icon" href="./favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wmds?</title>
 
-    <style>
+  <!-- <style>
     .scaled-svg {
-        width: 150px; 
+      width: 150px;
     }
-    </style>
+  </style> -->
 </head>
 
 <body>
-     <div class="container">
-        <h1>
-            Hey, was machst du so?
-        </h1>
-        <p>
-            Bald gibt es hier den ersten Blogartikel<br> </a>
+  <div class="page-container">
+    <h1>Hey, was machst du so?</h1>
+    <p>
+      Bald gibt es hier den ersten Blogartikel
+    </p>
 
-        </p>
+    <!-- Blog post tiles are inserted here -->
+    <div id="post-grid"></div>
+    <button id="load-more" style="display: none;">Mehr laden</button>
 
-
-        </p>
-
-        <h1>Kontakt</h1>
-        <p>
-            <a class="style4" href="mailto:hallo@wasmachstduso.com"> Schreib uns!</a>
-        </p>
-    </div>
+    <!-- <h1>Kontakt</h1>
+    <p>
+      <a class="style4" href="mailto:hallo@wasmachstduso.com">Schreib uns!</a>
+    </p> -->
 
 
     <div class="footer">
-        &copy; 2025 wmds
+      &copy; 2025 wmds |
+      <a class="style4" href="mailto:hallo@wasmachstduso.com">Schreib uns!</a>
     </div>
 
+  </div>
+  <script src="./js/load-posts.js"></script>
 </body>
 </html>
-
