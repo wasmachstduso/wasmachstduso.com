@@ -1,13 +1,6 @@
 head {
   background-image: url("bg.png");
-}
-
-/* body{
-  /* background-image: url("bg.png"); */
-/*  margin: 0px auto;
-  max-width: 480px;
-}*/
- 
+} 
 
 
 video, img, figure {
@@ -181,7 +174,7 @@ a:active {
   border: 1px solid #ccc;
   border-radius: 8px;
   overflow: hidden;
-  background-color: transparent;
+  background-color:  #ffd82c1c;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -272,7 +265,7 @@ html {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #ffd82c27;
+  background: #ffd82c1c;
 }
 
 
