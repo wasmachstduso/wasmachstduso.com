@@ -4,7 +4,7 @@ let allPosts = [];
 let loadedCount = 0;
 const POSTS_PER_LOAD = 10;
 
-fetch("./posts/rss.xml")
+fetch("./rss.xml")
   .then(res => res.text())
   .then(str => {
     const parser = new DOMParser();
