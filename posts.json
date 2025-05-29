@@ -1,9 +1,16 @@
 [
-    {
-      "title": "Wir waren in Berlin",
-      "author": "Mara",
-      "date": "Dienstag, 27. Mai 2025",
-      "image": "./assets/images/20250527/PrenzlbergAbend.jpeg",
-      "link": "./posts/20250527_WirWarenInBerlin.html"
-    }
+  {
+    "title": "cafés erkunden in kopenhagen",
+    "author": "elias",
+    "date": "donnerstag, 29. Mai 2025",
+    "image": "./assets/images/20250529/steg.jpeg",
+    "link": "./posts/20250529_Kopenhagen.html"
+  },  
+  {
+    "title": "wir waren in berlin",
+    "author": "mara",
+    "date": "dienstag, 27. Mai 2025",
+    "image": "./assets/images/20250527/PrenzlbergAbend.jpeg",
+    "link": "./posts/20250527_WirWarenInBerlin.html"
+  }
 ]
