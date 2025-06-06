@@ -1,9 +1,16 @@
 [
   {
+    "title": "erledigungen und erster sommertag",
+    "author": "elias",
+    "date": "freitag, 6. Juni 2025",
+    "image": "./assets/images/20250606/stadt.jpeg",
+    "link": "./posts/20250606_EndlichSommer.html"
+  },
+  {
     "title": "ich war im allgäu",
     "author": "mara",
     "date": "donnerstag, 5. Juni 2025",
-    "image": "./assets/images/20250605/Wiese.jpeg",
+    "image": "./assets/images/20250605/Milan.jpeg",
     "link": "./posts/20250605_IchwarimAllgäu.html"
   },
   {

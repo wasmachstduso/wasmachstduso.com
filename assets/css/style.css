@@ -288,4 +288,26 @@ body {
   padding-bottom: 20px;
 }
 
+.comments-section {
+  max-width: 600px;
+}
+
+.comment {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.comment p {
+  margin: 4px 0;
+}
+
+.comment strong {
+  font-weight: 600;
+}
+
+.comment small {
+  color: #777;
+  font-size: 0.85em;
+}
 
