@@ -11,14 +11,6 @@ async function fetchComments() {
     commentsContainer.innerHTML = ""; // clear existing
 
     if (comments.length === 0) {
-      // const noCommentEl = document.createElement("div");
-      // noCommentEl.className = "comment";
-    
-      // noCommentEl.innerHTML = `
-      //   <p><em>Schreib den ersten Kommentar!</em></p>
-      // `;
-    
-      // commentsContainer.appendChild(noCommentEl);
       return;
     }
     
