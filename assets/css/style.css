@@ -234,14 +234,22 @@ a:active {
 
 .like-button {
   flex: 1;
-  margin-top: 2rem;
+  height: 40px;
+  font-size: 16px;
+  padding: 0 12px;
+  line-height: 1;
+  border-radius: 5px;
   background-color: transparent;
   border: 1px solid #aaa;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
   cursor: pointer;
-  border-radius: 5px;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
 }
+
+.like-button:hover {
+  background-color: #fdc0324f;
+}
+
 
 .like-button:hover {
   background-color: #fdc0324f;
@@ -289,13 +297,18 @@ body {
 }
 
 .comments-section {
-  max-width: 600px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  padding-top: 18px;
+  border-top: 1px solid #5252527b;
 }
+
 
 .comment {
   margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
+  padding-top: 8px;
+  /* border-bottom: 1px solid #5252527b; */
+  border-top: 1px solid #5252527b;
 }
 
 .comment p {

@@ -1,24 +1,53 @@
 <div class="comments-section" style="margin-top: 20px;">
-    <form id="comment-form" style="margin-bottom: 15px;">
+  <form id="comment-form" style="margin-bottom: 5px;">
+    
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
       <input
         type="text"
         name="name"
         placeholder="Name"
         required
-        style="width: 100%; padding: 8px; margin-bottom: 8px; box-sizing: border-box;"
+        style="
+          flex: 1;
+          height: 40px;
+          padding: 0 12px;
+          font-size: 16px;
+          line-height: 1;
+          border-radius: 5px;
+          border: 1px solid rgba(0, 0, 0, 0.25);
+          background-color: rgba(255, 255, 255, 0.45);
+          box-sizing: border-box;
+        "
       />
-      <textarea
-        name="comment"
-        placeholder="Kommentar"
-        required
-        rows="4"
-        style="width: 100%; padding: 8px; margin-bottom: 8px; box-sizing: border-box;"
-      ></textarea>
-      <button type="submit" style="padding: 8px 16px;">Kommentar Posten</button>
-    </form>
-  
-    <div id="comments-list" style="border-top: 1px solid #ccc; padding-top: 10px;">
-      Lade Kommentare...
+      <button type="submit" class="like-button">posten</button>
     </div>
+    
+    <textarea
+      name="comment"
+      placeholder="Kommentar"
+      required
+      rows="5"
+      style="
+        width: 100%;
+        height: auto;
+        max-height: 7.5em; /* roughly 5 lines, assuming ~1.5em line-height */
+        overflow-y: auto;
+        resize: none;
+        padding: 8px;
+        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.45);
+        border: 1px solid rgba(0, 0, 0, 0.25);
+        box-sizing: border-box;
+        line-height: 1.5;
+        font-size: 16px;
+      "
+    ></textarea>
+
+  </form>
+  
+  
+  <div id="comments-list" style="padding-top: 10px; padding-bottom: 30px;">
+    Schreib den ersten Kommentar. (Bitte!)
+  </div>
 </div>
   

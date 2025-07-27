@@ -1,19 +1,27 @@
-const postId = window.location.pathname.split("/").pop().replace(".html", ""); // same post ID logic
-const workerUrl = "https://wasmachstduso.com/comments"; // update to your comments worker URL
+const commentPostId = window.location.pathname.split("/").pop().replace(".html", ""); // same post ID logic
+const commentWorkerUrl = "https://wasmachstduso.com/comments"; // update to your comments worker URL
 
 // Fetch and display comments
 async function fetchComments() {
   try {
-    const res = await fetch(`${workerUrl}/?post=${postId}`);
-    const comments = await res.json();
+    const res = await fetch(`${commentWorkerUrl}/?post=${commentPostId}`);
+    const comments = (await res.json()).reverse();
     
     const commentsContainer = document.getElementById("comments-list");
     commentsContainer.innerHTML = ""; // clear existing
 
     if (comments.length === 0) {
-      commentsContainer.textContent = "Schreib den ersten Kommentar!";
+      // const noCommentEl = document.createElement("div");
+      // noCommentEl.className = "comment";
+    
+      // noCommentEl.innerHTML = `
+      //   <p><em>Schreib den ersten Kommentar!</em></p>
+      // `;
+    
+      // commentsContainer.appendChild(noCommentEl);
       return;
     }
+    
 
     comments.forEach(({ id, name, comment, timestamp }) => {
       const commentEl = document.createElement("div");
@@ -23,21 +31,9 @@ async function fetchComments() {
       commentEl.innerHTML = `
         <p><strong>${escapeHtml(name)}</strong> <small>${date.toLocaleString()}</small></p>
         <p>${escapeHtml(comment)}</p>
-        <button class="delete-comment" data-id="${id}" style="display:none;">Delete</button>
       `;
 
       commentsContainer.appendChild(commentEl);
-    });
-
-    // Add delete button handlers (if you want)
-    document.querySelectorAll(".delete-comment").forEach(button => {
-      button.addEventListener("click", async () => {
-        const id = button.dataset.id;
-        if (confirm("Delete this comment?")) {
-          await deleteComment(id);
-          fetchComments();
-        }
-      });
     });
 
   } catch (err) {
@@ -48,10 +44,10 @@ async function fetchComments() {
 // Post a new comment
 async function postComment(name, comment) {
   try {
-    const res = await fetch(workerUrl, {
+    const res = await fetch(commentWorkerUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ post: postId, name, comment })
+      body: JSON.stringify({ post: commentPostId, name, comment })
     });
 
     if (!res.ok) throw new Error(await res.text());
@@ -69,8 +65,7 @@ function escapeHtml(text) {
   });
 }
 
-// Event listener for comment form submit
-document.addEventListener("DOMContentLoaded", () => {
+function initCommentSystem() {
   fetchComments();
 
   const form = document.getElementById("comment-form");
@@ -78,21 +73,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", e => {
     e.preventDefault();
-
     const nameInput = form.querySelector("input[name='name']");
     const commentInput = form.querySelector("textarea[name='comment']");
-
-    const name = nameInput.value.trim();
-    const comment = commentInput.value.trim();
+    const name = nameInput?.value?.trim() || null;
+    const comment = commentInput?.value?.trim() || null;
 
     if (!name || !comment) {
-      alert("Please enter your name and comment.");
+      alert("Bitte gib erst Name und Kommentar ein!");
       return;
     }
-
+    const confirmation = confirm(
+      `Fertig getippt?\n\nName: ${name}\nKommentar:\n${comment}`
+    );
+    
+    if (!confirmation) return;
+    
     postComment(name, comment);
 
     nameInput.value = "";
     commentInput.value = "";
   });
-});
+}
+
