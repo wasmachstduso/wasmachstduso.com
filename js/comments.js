@@ -1,5 +1,14 @@
-const commentPostId = window.location.pathname.split("/").pop().replace(".html", ""); // same post ID logic
-const commentWorkerUrl = "https://wasmachstduso.com/comments"; // update to your comments worker URL
+// In comments.js (browser):
+const raw = window.location.pathname.split("/").pop(); // e.g. "%C3%A4rger.html"
+const decoded = decodeURIComponent(raw);               // → "ärger.html"
+const commentPostId = decoded
+  .replace(".html", "")
+  .replace(/ä/g, "ae")
+  .replace(/ö/g, "oe")
+  .replace(/ü/g, "ue")
+  .replace(/ß/g, "ss")
+  .toLowerCase();
+const commentWorkerUrl = "https://wasmachstduso.com/comments"; 
 
 // Fetch and display comments
 async function fetchComments() {

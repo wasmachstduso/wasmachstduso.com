@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
       // Load comment.js dynamically
       const script = document.createElement("script");
-      script.src = "../js/comments.js?v=20250727";
+      script.src = "../js/comments.js?v=202507";
       script.onload = () => {
         initCommentSystem();
       };
