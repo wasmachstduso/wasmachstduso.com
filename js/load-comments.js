@@ -10,13 +10,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   
     try {
-      const res = await fetch("./../assets/html/comments.html");
+      const res = await fetch("../assets/html/comments.html");
       const html = await res.text();
       container.innerHTML = html;
   
       // Load comment.js dynamically
       const script = document.createElement("script");
-      script.src = "./../js/comments.js";
+      script.src = "../js/comments.js";
       script.onload = () => {
         
         initCommentSystem();
