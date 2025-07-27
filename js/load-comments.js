@@ -18,9 +18,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const script = document.createElement("script");
       script.src = "../js/comments.js";
       script.onload = () => {
-        
         initCommentSystem();
-        
       };
       document.body.appendChild(script);
     } catch (err) {

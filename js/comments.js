@@ -57,7 +57,7 @@ function escapeHtml(text) {
   });
 }
 
-window.initCommentSystem = function () {
+function initCommentSystem() {
   fetchComments();
 
   const form = document.getElementById("comment-form");
