@@ -244,6 +244,8 @@ a:active {
   cursor: pointer;
   box-sizing: border-box;
   transition: background-color 0.2s ease;
+
+  color: inherit; /* or a specific color like #000 or #333 */
 }
 
 .like-button:hover {
