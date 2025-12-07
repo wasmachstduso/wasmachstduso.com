@@ -9,6 +9,7 @@ video, img, figure {
   height: auto   !important;
   margin: 0px 0px 0px;
   border-radius: 8px;
+  -webkit-backface-visibility: hidden;
 }
 
 figcaption {
