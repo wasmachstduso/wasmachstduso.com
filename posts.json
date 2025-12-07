@@ -1,6 +1,13 @@
 [
  {
-    "title": "im Sommer habe ich ein paar Bücher gelesen",
+    "title": "postkarten aus dem sommer",
+    "author": "elias",
+    "date": "sonntag, 07. Dezember 2025",
+    "image": "./assets/images/20251207/terrasse.jpeg",
+    "link": "./posts/20251207_Sommererinnerungen.html"
+  },
+  {
+    "title": "im sommer habe ich ein paar bücher gelesen",
     "author": "mara",
     "date": "sonntag, 31. August 2025",
     "image": "./assets/images/20250831/Stein.jpeg",
