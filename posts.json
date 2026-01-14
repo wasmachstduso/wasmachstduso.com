@@ -1,50 +1,57 @@
 [
- {
+{
+   "title": "geschichten aus der sauna",
+   "author": "mara",
+   "date": "mittwoch, 14. januar 2026",
+   "image": "./assets/images/20251212/bordeaux.jpeg",
+   "link": "./posts/20260114_Sauna.html"
+ },
+{
    "title": "das habe ich zuletzt gelesen und geschaut",
    "author": "elias",
-   "date": "freitag, 12. Dezember 2025",
+   "date": "freitag, 12. dezember 2025",
    "image": "./assets/images/20251212/bordeaux.jpeg",
    "link": "./posts/20251212_Wintermedien.html"
  },
  {
     "title": "postkarten aus dem sommer",
     "author": "elias",
-    "date": "sonntag, 07. Dezember 2025",
+    "date": "sonntag, 07. dezember 2025",
     "image": "./assets/images/20251207/terrasse.jpeg",
     "link": "./posts/20251207_Sommererinnerungen.html"
   },
   {
     "title": "im sommer habe ich ein paar bücher gelesen",
     "author": "mara",
-    "date": "sonntag, 31. August 2025",
+    "date": "sonntag, 31. august 2025",
     "image": "./assets/images/20250831/Stein.jpeg",
     "link": "./posts/20250831_Sommerbücher.html"
   },
   {
     "title": "erledigungen und erster sommertag",
     "author": "elias",
-    "date": "freitag, 6. Juni 2025",
+    "date": "freitag, 6. juni 2025",
     "image": "./assets/images/20250606/stadt.jpeg",
     "link": "./posts/20250606_Endlichsommer.html"
   },
   {
     "title": "ich war im allgäu",
     "author": "mara",
-    "date": "donnerstag, 5. Juni 2025",
+    "date": "donnerstag, 5. juni 2025",
     "image": "./assets/images/20250605/Milan.jpeg",
     "link": "./posts/20250605_IchwarimAllgäu.html"
   },
   {
     "title": "cafés erkunden in kopenhagen",
     "author": "elias",
-    "date": "donnerstag, 29. Mai 2025",
+    "date": "donnerstag, 29. mai 2025",
     "image": "./assets/images/20250529/steg.jpeg",
     "link": "./posts/20250529_Kopenhagen.html"
   },  
   {
     "title": "wir waren in berlin",
     "author": "mara",
-    "date": "dienstag, 27. Mai 2025",
+    "date": "dienstag, 27. mai 2025",
     "image": "./assets/images/20250527/PrenzlbergAbend.jpeg",
     "link": "./posts/20250527_WirWarenInBerlin.html"
   }
