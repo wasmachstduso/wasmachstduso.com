@@ -1,12 +1,19 @@
 [
-{
-   "title": "geschichten aus der sauna",
-   "author": "mara",
-   "date": "mittwoch, 14. januar 2026",
-   "image": "./assets/images/20260114/Sauna.jpeg",
-   "link": "./posts/20260114_Sauna.html"
- },
-{
+  {
+    "title": "schneefotos",
+    "author": "elias",
+    "date": "sonntag, 22. februar 2026",
+    "image": "./assets/images/20260222/sonnentreppe.jpeg",
+    "link": "./posts/20260222_Schneefotos.html"
+  },
+  {
+    "title": "geschichten aus der sauna",
+    "author": "mara",
+    "date": "mittwoch, 14. januar 2026",
+    "image": "./assets/images/20260114/Sauna.jpeg",
+    "link": "./posts/20260114_Sauna.html"
+  },
+  {
    "title": "das habe ich zuletzt gelesen und geschaut",
    "author": "elias",
    "date": "freitag, 12. dezember 2025",
