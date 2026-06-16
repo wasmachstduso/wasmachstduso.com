@@ -1,17 +1,17 @@
 [
-   {
-    "title": "alleine im urlaub",
-    "author": "mara",
-    "date": "mittwoch, 25. märz 2026",
-    "image": "./assets/images/20260325/teneriffa1.jpeg",
-    "link": "./posts/20260325_Teneriffa.html"
-  },
   {
     "title": "was ich zuletzt gelesen habe",
     "author": "mara",
     "date": "dienstag, 16. juni 2026",
     "image": "./assets/images/20260616/buchregal.jpeg",
     "link": "./posts/20260616_Buchsammlung.html"
+  },
+  {
+    "title": "alleine im urlaub",
+    "author": "mara",
+    "date": "mittwoch, 25. märz 2026",
+    "image": "./assets/images/20260325/teneriffa1.jpeg",
+    "link": "./posts/20260325_Teneriffa.html"
   },
   {
     "title": "schneefotos",
