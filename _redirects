@@ -1,1 +1,2 @@
 /feed   /rss.xml   200
+/posts/:slug.html  /post.html?id=:slug  302

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>schreiben</title>
+  <link rel="stylesheet" href="https://use.typekit.net/vya7gle.css" />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+  <link rel="icon" href="./favicon.png" />
+  <style>
+    .wrap { width: 100%; max-width: 700px; padding: 0 20px; box-sizing: border-box; margin: 0 auto; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .field label { font-family: noto-sans, sans-serif; font-size: 14px; color: #757575; }
+    .field input, .field textarea {
+      font-family: noto-sans, sans-serif; font-size: 16px; padding: 10px 12px;
+      border: 1px solid rgba(0,0,0,0.25); border-radius: 8px;
+      background: rgba(255,255,255,0.45); box-sizing: border-box; width: 100%;
+    }
+    .field textarea { resize: vertical; line-height: 1.5; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row .field { flex: 1; min-width: 180px; }
+    .actions { display: flex; gap: 10px; margin: 1rem 0; flex-wrap: wrap; align-items: center; }
+    .msg { font-family: noto-sans, sans-serif; font-size: 14px; margin: 8px 0; }
+    .msg.ok { color: #52c134; } .msg.err { color: #8B0000; }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .thumbs figure { width: 90px; margin: 0; }
+    .thumbs img { width: 100%; border-radius: 6px; }
+    .thumbs figcaption { font-size: 10px; color: #757575; }
+    .preview { border-top: 1px solid #5252527b; margin-top: 1.5rem; padding-top: 1rem; }
+    .filelabel { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h3>schreiben</h3>
+
+    <!-- login -->
+    <div id="login">
+      <div class="field">
+        <label>Passwort</label>
+        <input id="pw" type="password" autocomplete="current-password" />
+      </div>
+      <div id="login-msg" class="msg err" style="display:none">Falsches Passwort.</div>
+      <button class="like-button" id="login-btn">einloggen</button>
+      <div class="footer"><a class="style4" href="/">zurück</a></div>
+    </div>
+
+    <!-- editor -->
+    <div id="editor" style="display:none">
+      <div class="row">
+        <div class="field"><label>Titel</label><input id="title" /></div>
+        <div class="field"><label>Autor:in</label><input id="author" /></div>
+      </div>
+      <div class="field"><label>Datum (wie es angezeigt wird)</label><input id="date" /></div>
+      <div class="field">
+        <label>Text — HTML erlaubt (&lt;p&gt;…&lt;/p&gt; &lt;br&gt;)</label>
+        <textarea id="body" rows="12" placeholder="<p>Hallo …</p>"></textarea>
+      </div>
+
+      <div class="actions">
+        <label class="like-button filelabel">📷 Bilder hinzufügen
+          <input id="files" type="file" accept="image/*" multiple style="display:none" />
+        </label>
+        <button class="like-button" id="para-btn" type="button">¶ Absatz</button>
+        <button class="like-button" id="publish-btn" type="button">💾 veröffentlichen</button>
+        <button class="like-button" id="logout-btn" type="button">ausloggen</button>
+      </div>
+
+      <div id="msg" class="msg"></div>
+      <div id="thumbs" class="thumbs"></div>
+
+      <div class="preview">
+        <p style="font-size:14px;color:#757575">Vorschau</p>
+        <h1 id="pv-title"></h1>
+        <p><strong id="pv-author"></strong> am <em id="pv-date"></em></p>
+        <div class="post-content" id="pv-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Where the worker lives. Same-origin in production; override for local dev.
+    const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+      ? "http://localhost:8787/api"
+      : "/api";
+    const MAX_EDGE = 1600;      // px — the speed fix: downscale before upload
+    const JPEG_QUALITY = 0.82;
+
+    let pw = sessionStorage.getItem("wmds_pw") || "";
+    let postId = "";
+    let cover = "";
+
+    const $ = (id) => document.getElementById(id);
+
+    function showEditor() {
+      $("login").style.display = "none";
+      $("editor").style.display = "block";
+      if (!$("date").value) $("date").value = todayDE();
+      refreshPreview();
+    }
+
+    function todayDE() {
+      const days = ["sonntag","montag","dienstag","mittwoch","donnerstag","freitag","samstag"];
+      const months = ["januar","februar","märz","april","mai","juni","juli","august","september","oktober","november","dezember"];
+      const d = new Date();
+      return `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    // try existing session
+    if (pw) showEditor();
+
+    $("login-btn").onclick = async () => {
+      pw = $("pw").value;
+      // verify by attempting a harmless authorized call (create is the only one;
+      // instead we just store and let the first publish confirm). Quick check:
+      // we ping upload auth with an empty body? Simpler: store and proceed.
+      sessionStorage.setItem("wmds_pw", pw);
+      showEditor();
+    };
+    $("logout-btn").onclick = () => { sessionStorage.removeItem("wmds_pw"); location.reload(); };
+
+    $("para-btn").onclick = () => {
+      const t = $("body");
+      t.value += (t.value ? "\n" : "") + "<p>\n  \n</p> <br>\n";
+      refreshPreview();
+    };
+
+    $("body").addEventListener("input", refreshPreview);
+    $("title").addEventListener("input", refreshPreview);
+    $("author").addEventListener("input", refreshPreview);
+    $("date").addEventListener("input", refreshPreview);
+
+    function refreshPreview() {
+      $("pv-title").textContent = $("title").value || "(Titel)";
+      $("pv-author").textContent = "von " + ($("author").value || "…");
+      $("pv-date").textContent = $("date").value || "";
+      $("pv-body").innerHTML = $("body").value;
+    }
+
+    // resize an image File in the browser, return a JPEG Blob
+    function resizeImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = () => { img.src = reader.result; };
+        reader.onerror = reject;
+        img.onload = () => {
+          let { width: w, height: h } = img;
+          if (Math.max(w, h) > MAX_EDGE) {
+            const s = MAX_EDGE / Math.max(w, h);
+            w = Math.round(w * s); h = Math.round(h * s);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          canvas.toBlob((blob) => resolve(blob), "image/jpeg", JPEG_QUALITY);
+        };
+        img.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // make sure the post exists (to get an id for image keys)
+    async function ensurePost() {
+      const title = $("title").value.trim();
+      const author = $("author").value.trim();
+      if (!title || !author) throw new Error("Titel und Autor:in zuerst ausfüllen.");
+      const res = await fetch(`${API}/admin/posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${pw}` },
+        body: JSON.stringify({
+          id: postId || undefined,
+          title, author,
+          date: $("date").value,
+          body_html: $("body").value,
+          cover_image: cover,
+        }),
+      });
+      if (res.status === 401) throw new Error("Falsches Passwort — bitte neu einloggen.");
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      postId = data.id;
+      return data.id;
+    }
+
+    $("files").onchange = async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      setMsg("", "");
+      try {
+        const id = await ensurePost();
+        for (const file of files) {
+          const blob = await resizeImage(file);
+          const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+          const r = await fetch(`${API}/admin/upload?post=${encodeURIComponent(id)}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "image/jpeg",
+              "X-Filename": name,
+              Authorization: `Bearer ${pw}`,
+            },
+            body: blob,
+          });
+          if (!r.ok) throw new Error(await r.text());
+          const { url } = await r.json();
+          const tag = `<img class="post-img" loading="lazy" src="${url}">`;
+          $("body").value += ($("body").value ? "\n" : "") + tag + "\n";
+          if (!cover) cover = url;
+          addThumb(url, blob.size, file.size);
+        }
+        refreshPreview();
+        setMsg("ok", "Bilder verkleinert, hochgeladen und eingefügt.");
+      } catch (err) {
+        setMsg("err", err.message);
+      } finally {
+        e.target.value = "";
+      }
+    };
+
+    $("publish-btn").onclick = async () => {
+      setMsg("", "");
+      try {
+        const id = await ensurePost();
+        setMsg("ok", `Veröffentlicht. Ansehen: /post.html?id=${id}`);
+      } catch (err) {
+        setMsg("err", err.message);
+      }
+    };
+
+    function addThumb(url, kb, origBytes) {
+      const fig = document.createElement("figure");
+      fig.innerHTML = `<img src="${url}"><figcaption>${Math.round(kb/1024)} KB (war ${(origBytes/1048576).toFixed(1)} MB)</figcaption>`;
+      $("thumbs").appendChild(fig);
+    }
+    function setMsg(kind, text) {
+      const m = $("msg");
+      m.className = "msg " + kind;
+      m.textContent = text;
+    }
+  </script>
+</body>
+</html>
