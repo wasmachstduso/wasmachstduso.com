@@ -11,7 +11,7 @@
     .wrap { width: 100%; max-width: 700px; padding: 0 20px; box-sizing: border-box; margin: 0 auto; }
     .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
     .field label { font-family: noto-sans, sans-serif; font-size: 14px; color: #757575; }
-    .field input, .field textarea {
+    .field input, .field textarea, .field select {
       font-family: noto-sans, sans-serif; font-size: 16px; padding: 10px 12px;
       border: 1px solid rgba(0,0,0,0.25); border-radius: 8px;
       background: rgba(255,255,255,0.45); box-sizing: border-box; width: 100%;
@@ -28,6 +28,9 @@
     .thumbs figcaption { font-size: 10px; color: #757575; }
     .preview { border-top: 1px solid #5252527b; margin-top: 1.5rem; padding-top: 1rem; }
     .filelabel { cursor: pointer; }
+    .mode-bar { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+    .mode-btn { opacity: 0.4; }
+    .mode-btn.active { opacity: 1; }
   </style>
 </head>
 <body>
@@ -47,6 +50,21 @@
 
     <!-- editor -->
     <div id="editor" style="display:none">
+
+      <!-- new / edit toggle -->
+      <div class="mode-bar">
+        <button class="like-button mode-btn active" id="mode-new">✏️ neu</button>
+        <button class="like-button mode-btn" id="mode-edit">📝 bearbeiten</button>
+      </div>
+
+      <!-- post picker (edit mode only) -->
+      <div id="picker" class="field" style="display:none">
+        <label>Beitrag auswählen</label>
+        <select id="post-select">
+          <option value="">— bitte wählen —</option>
+        </select>
+      </div>
+
       <div class="row">
         <div class="field"><label>Titel</label><input id="title" /></div>
         <div class="field"><label>Autor:in</label><input id="author" /></div>
@@ -63,6 +81,7 @@
         </label>
         <button class="like-button" id="para-btn" type="button">¶ Absatz</button>
         <button class="like-button" id="publish-btn" type="button">💾 veröffentlichen</button>
+        <button class="like-button" id="new-btn" type="button" style="display:none">+ neuer beitrag</button>
         <button class="like-button" id="logout-btn" type="button">ausloggen</button>
       </div>
 
@@ -79,18 +98,28 @@
   </div>
 
   <script>
-    // Where the worker lives. Same-origin in production; override for local dev.
     const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
       ? "http://localhost:8787/api"
       : "/api";
-    const MAX_EDGE = 1600;      // px — the speed fix: downscale before upload
+    const MAX_EDGE = 1600;
     const JPEG_QUALITY = 0.82;
 
     let pw = sessionStorage.getItem("wmds_pw") || "";
     let postId = "";
     let cover = "";
+    let editMode = false;
 
     const $ = (id) => document.getElementById(id);
+
+    // ---- login ----
+    if (pw) showEditor();
+
+    $("login-btn").onclick = () => {
+      pw = $("pw").value;
+      sessionStorage.setItem("wmds_pw", pw);
+      showEditor();
+    };
+    $("logout-btn").onclick = () => { sessionStorage.removeItem("wmds_pw"); location.reload(); };
 
     function showEditor() {
       $("login").style.display = "none";
@@ -99,32 +128,85 @@
       refreshPreview();
     }
 
-    function todayDE() {
-      const days = ["sonntag","montag","dienstag","mittwoch","donnerstag","freitag","samstag"];
-      const months = ["januar","februar","märz","april","mai","juni","juli","august","september","oktober","november","dezember"];
-      const d = new Date();
-      return `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]} ${d.getFullYear()}`;
+    // ---- mode toggle ----
+    $("mode-new").onclick = () => switchMode(false);
+    $("mode-edit").onclick = () => {
+      switchMode(true);
+      loadPostList();
+    };
+
+    function switchMode(toEdit) {
+      editMode = toEdit;
+      $("mode-new").classList.toggle("active", !toEdit);
+      $("mode-edit").classList.toggle("active", toEdit);
+      $("picker").style.display = toEdit ? "block" : "none";
+      $("new-btn").style.display = toEdit ? "inline-flex" : "none";
+      if (!toEdit) resetForm();
     }
 
-    // try existing session
-    if (pw) showEditor();
+    // ---- post list for edit mode ----
+    async function loadPostList() {
+      try {
+        const res = await fetch(`${API}/posts`);
+        const posts = await res.json();
+        const sel = $("post-select");
+        sel.innerHTML = '<option value="">— bitte wählen —</option>';
+        posts.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.date} — ${p.title}`;
+          sel.appendChild(opt);
+        });
+      } catch {
+        setMsg("err", "Konnte Beitragsliste nicht laden.");
+      }
+    }
 
-    $("login-btn").onclick = async () => {
-      pw = $("pw").value;
-      // verify by attempting a harmless authorized call (create is the only one;
-      // instead we just store and let the first publish confirm). Quick check:
-      // we ping upload auth with an empty body? Simpler: store and proceed.
-      sessionStorage.setItem("wmds_pw", pw);
-      showEditor();
+    $("post-select").onchange = async () => {
+      const id = $("post-select").value;
+      if (!id) { resetForm(); return; }
+      setMsg("", "");
+      try {
+        const res = await fetch(`${API}/posts/${encodeURIComponent(id)}`);
+        if (!res.ok) throw new Error();
+        const post = await res.json();
+        postId = post.id;
+        cover = post.cover_image || "";
+        $("title").value = post.title;
+        $("author").value = post.author;
+        $("date").value = post.date;
+        $("body").value = post.body_html;
+        $("thumbs").innerHTML = "";
+        refreshPreview();
+        setMsg("ok", `„${post.title}" geladen — Änderungen und dann veröffentlichen.`);
+      } catch {
+        setMsg("err", "Beitrag konnte nicht geladen werden.");
+      }
     };
-    $("logout-btn").onclick = () => { sessionStorage.removeItem("wmds_pw"); location.reload(); };
 
+    // ---- new post button (while in edit mode) ----
+    $("new-btn").onclick = () => {
+      $("post-select").value = "";
+      resetForm();
+      setMsg("", "");
+    };
+
+    function resetForm() {
+      postId = ""; cover = "";
+      $("title").value = "";
+      $("author").value = "";
+      $("date").value = todayDE();
+      $("body").value = "";
+      $("thumbs").innerHTML = "";
+      refreshPreview();
+    }
+
+    // ---- editor ----
     $("para-btn").onclick = () => {
       const t = $("body");
       t.value += (t.value ? "\n" : "") + "<p>\n  \n</p> <br>\n";
       refreshPreview();
     };
-
     $("body").addEventListener("input", refreshPreview);
     $("title").addEventListener("input", refreshPreview);
     $("author").addEventListener("input", refreshPreview);
@@ -137,7 +219,14 @@
       $("pv-body").innerHTML = $("body").value;
     }
 
-    // resize an image File in the browser, return a JPEG Blob
+    function todayDE() {
+      const days = ["sonntag","montag","dienstag","mittwoch","donnerstag","freitag","samstag"];
+      const months = ["januar","februar","märz","april","mai","juni","juli","august","september","oktober","november","dezember"];
+      const d = new Date();
+      return `${days[d.getDay()]}, ${d.getDate()}. ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    // ---- image resize + upload ----
     function resizeImage(file) {
       return new Promise((resolve, reject) => {
         const img = new Image();
@@ -160,7 +249,6 @@
       });
     }
 
-    // make sure the post exists (to get an id for image keys)
     async function ensurePost() {
       const title = $("title").value.trim();
       const author = $("author").value.trim();
@@ -194,11 +282,7 @@
           const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
           const r = await fetch(`${API}/admin/upload?post=${encodeURIComponent(id)}`, {
             method: "POST",
-            headers: {
-              "Content-Type": "image/jpeg",
-              "X-Filename": name,
-              Authorization: `Bearer ${pw}`,
-            },
+            headers: { "Content-Type": "image/jpeg", "X-Filename": name, Authorization: `Bearer ${pw}` },
             body: blob,
           });
           if (!r.ok) throw new Error(await r.text());
@@ -221,7 +305,9 @@
       setMsg("", "");
       try {
         const id = await ensurePost();
-        setMsg("ok", `Veröffentlicht. Ansehen: /post.html?id=${id}`);
+        setMsg("ok", `Veröffentlicht ✓  → <a href="/post.html?id=${id}" class="style4">ansehen</a>`);
+        // update dropdown if in edit mode
+        if (editMode) loadPostList();
       } catch (err) {
         setMsg("err", err.message);
       }
@@ -235,7 +321,7 @@
     function setMsg(kind, text) {
       const m = $("msg");
       m.className = "msg " + kind;
-      m.textContent = text;
+      m.innerHTML = text;
     }
   </script>
 </body>
