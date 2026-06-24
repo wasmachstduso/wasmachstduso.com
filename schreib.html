@@ -337,7 +337,14 @@
 
     function addThumb(url, kb, origBytes) {
       const fig = document.createElement("figure");
-      fig.innerHTML = `<img src="${url}"><figcaption>${Math.round(kb/1024)} KB (war ${(origBytes/1048576).toFixed(1)} MB)</figcaption>`;
+      fig.innerHTML = `<img src="${url}"><figcaption>${Math.round(kb/1024)} KB (war ${(origBytes/1048576).toFixed(1)} MB)<br><a href="#" class="style4" style="font-size:10px">als Cover</a></figcaption>`;
+      fig.querySelector("a").onclick = (e) => {
+        e.preventDefault();
+        cover = url;
+        document.querySelectorAll("#thumbs figure").forEach(f => f.style.outline = "none");
+        fig.style.outline = "2px solid #52c134";
+        setMsg("ok", "Cover gesetzt.");
+      };
       $("thumbs").appendChild(fig);
     }
     function setMsg(kind, text) {
