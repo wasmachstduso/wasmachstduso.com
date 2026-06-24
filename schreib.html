@@ -270,7 +270,7 @@
       });
     }
 
-    async function ensurePost() {
+    async function ensurePost(draft = false) {
       const title = $("title").value.trim();
       const author = $("author").value.trim();
       if (!title || !author) throw new Error("Titel und Autor:in zuerst ausfüllen.");
@@ -283,6 +283,7 @@
           date: $("date").value,
           body_html: $("body").value,
           cover_image: cover,
+          draft,
         }),
       });
       if (res.status === 401) throw new Error("Falsches Passwort — bitte neu einloggen.");
@@ -297,7 +298,7 @@
       if (!files.length) return;
       setMsg("", "");
       try {
-        const id = await ensurePost();
+        const id = await ensurePost(true);
         for (const file of files) {
           const blob = await resizeImage(file);
           const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
