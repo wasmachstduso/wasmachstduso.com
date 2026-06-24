@@ -72,7 +72,12 @@
       <div class="field"><label>Datum (wie es angezeigt wird)</label><input id="date" /></div>
       <div class="field">
         <label>Text — HTML erlaubt (&lt;p&gt;…&lt;/p&gt; &lt;br&gt;)</label>
-        <textarea id="body" rows="12" placeholder="<p>Hallo …</p>"></textarea>
+        <div id="dropzone" style="position:relative">
+          <textarea id="body" rows="12" placeholder="<p>Hallo …</p>"></textarea>
+          <div id="drop-overlay" style="display:none;position:absolute;inset:0;border-radius:8px;border:2px dashed #757575;background:rgba(255,255,255,0.7);align-items:center;justify-content:center;font-family:noto-sans,sans-serif;font-size:14px;color:#757575;pointer-events:none">
+            Fotos hier ablegen
+          </div>
+        </div>
       </div>
 
       <div class="actions">
@@ -334,6 +339,43 @@
         setMsg("err", err.message);
       }
     };
+
+    // ---- drag and drop ----
+    const dropzone = $("dropzone");
+    const overlay = $("drop-overlay");
+
+    dropzone.addEventListener("dragenter", (e) => { e.preventDefault(); overlay.style.display = "flex"; });
+    dropzone.addEventListener("dragover",  (e) => { e.preventDefault(); overlay.style.display = "flex"; });
+    dropzone.addEventListener("dragleave", (e) => { if (!dropzone.contains(e.relatedTarget)) overlay.style.display = "none"; });
+    dropzone.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      overlay.style.display = "none";
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+      if (!files.length) return;
+      setMsg("", "");
+      try {
+        const id = await ensurePost(true);
+        for (const file of files) {
+          const blob = await resizeImage(file);
+          const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+          const r = await fetch(`${API}/admin/upload?post=${encodeURIComponent(id)}`, {
+            method: "POST",
+            headers: { "Content-Type": "image/jpeg", "X-Filename": name, Authorization: `Bearer ${pw}` },
+            body: blob,
+          });
+          if (!r.ok) throw new Error(await r.text());
+          const { url } = await r.json();
+          const tag = `<img class="post-img" loading="lazy" src="${url}">`;
+          $("body").value += ($("body").value ? "\n" : "") + tag + "\n";
+          if (!cover) cover = url;
+          addThumb(url, blob.size, file.size);
+        }
+        refreshPreview();
+        setMsg("ok", "Bilder verkleinert, hochgeladen und eingefügt.");
+      } catch (err) {
+        setMsg("err", err.message);
+      }
+    });
 
     function addThumb(url, kb, origBytes) {
       const fig = document.createElement("figure");
