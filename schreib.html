@@ -219,6 +219,9 @@
     $("mode-draft").onclick = () => setMode("draft");
 
     function setMode(m) {
+      if (m !== mode && (postId || $("title").value.trim() || $("body").value.trim())) {
+        if (!confirm("Wenn du wechselst, geht der aktuelle Fortschritt verloren. Fortfahren?")) return;
+      }
       mode = m;
       $("mode-new").classList.toggle("active", m === "new");
       $("mode-edit").classList.toggle("active", m === "edit");
@@ -227,8 +230,8 @@
       $("picker").style.display = picking ? "block" : "none";
       $("delete-btn").style.display = picking ? "inline-flex" : "none";
       $("picker-label").textContent = m === "draft" ? "Entwurf auswählen" : "Beitrag auswählen";
-      if (!picking) { resetForm(); }
-      else { loadList(m); }
+      resetForm();
+      if (picking) loadList(m);
     }
 
     async function loadList(m) {
@@ -530,10 +533,14 @@
     };
 
     $("publish-btn").onclick = async () => {
+      const title = $("title").value.trim();
+      if (!confirm(`„${title || "Dieser Beitrag"}" jetzt veröffentlichen?`)) return;
       setMsg("", "");
       try {
         const id = await ensurePost(false);
-        setMsg("ok", `Veröffentlicht ✓  → <a href="/post.html?id=${id}" class="style4">ansehen</a>`);
+        const link = `/post.html?id=${id}`;
+        resetForm();
+        setMsg("ok", `Veröffentlicht ✓  → <a href="${link}" class="style4">ansehen</a>`);
         if (mode !== "new") loadList(mode);
       } catch (err) { setMsg("err", err.message); }
     };

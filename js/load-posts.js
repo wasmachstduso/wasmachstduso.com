@@ -59,8 +59,9 @@ function renderPosts() {
     tile.href = post.link || `/post.html?id=${encodeURIComponent(post.id)}`;
     tile.className = "post-tile";
     const isGuide = (post.tags || []).includes("guides");
+    const coverSrc = post.cover_image || "/favicon.png";
     tile.innerHTML = `
-      ${post.cover_image ? `<img src="${post.cover_image}" alt="Header image" loading="lazy" />` : ""}
+      <img src="${coverSrc}" alt="Header image" loading="lazy" />
       <div class="post-info">
         <h2>${isGuide ? "📍 " : ""}${post.title}</h2>
         <p>${post.date} — von ${post.author}</p>
@@ -81,19 +82,14 @@ function buildTagMenu(posts) {
   posts.forEach((p) => (p.tags || []).forEach((t) => { if (t !== "guides") tags.add(t); }));
   const list = document.getElementById("tag-list");
   const toggle = document.getElementById("tags-toggle");
-  if (!list || !toggle) return;
-  if (tags.size === 0) { toggle.style.display = "none"; return; }
-  toggle.style.display = "block";
+  if (!list) return;
+  if (tags.size === 0) { if (toggle) toggle.style.display = "none"; return; }
+  if (toggle) toggle.style.display = "block";
   [...tags].sort().forEach((t) => {
     const a = document.createElement("a");
     a.className = "sub";
     a.href = `/?tag=${encodeURIComponent(t)}`;
     a.textContent = t;
     list.appendChild(a);
-  });
-  toggle.addEventListener("click", () => {
-    const open = list.style.display !== "none";
-    list.style.display = open ? "none" : "block";
-    document.getElementById("tags-arrow").classList.toggle("open", !open);
   });
 }

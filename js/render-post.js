@@ -122,7 +122,7 @@ function renderComments(commentId) {
         <textarea name="comment" placeholder="Kommentar" required rows="5"
           style="width:100%;max-height:7.5em;overflow-y:auto;resize:none;padding:8px;border-radius:8px;background:rgba(255,255,255,0.45);border:1px solid rgba(0,0,0,0.25);box-sizing:border-box;line-height:1.5;font-size:16px"></textarea>
       </form>
-      <div id="comments-list" style="padding-top:10px;padding-bottom:30px">Kein Kommentar.</div>
+      <div id="comments-list" style="padding-top:10px;padding-bottom:30px;font-family:noto-sans,sans-serif;font-size:18px;font-weight:200;color:#6b6b6b">Kein Kommentar.</div>
     </div>`;
 
   const base = (location.hostname === "localhost" || location.hostname === "127.0.0.1"
@@ -134,7 +134,7 @@ function renderComments(commentId) {
       .then((r) => r.json())
       .then((comments) => {
         comments = comments.reverse();
-        if (!comments.length) { list.innerHTML = "Kein Kommentar."; return; }
+        if (!comments.length) { list.innerHTML = '<span style="font-family:noto-sans,sans-serif;font-size:18px;font-weight:200;color:#6b6b6b">Kein Kommentar.</span>'; return; }
         list.innerHTML = "";
         comments.forEach(({ name, comment, timestamp }) => {
           const d = new Date(timestamp);
