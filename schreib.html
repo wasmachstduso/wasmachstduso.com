@@ -6,6 +6,8 @@
   <title>schreiben</title>
   <link rel="stylesheet" href="https://use.typekit.net/vya7gle.css" />
   <link rel="stylesheet" href="./assets/css/style.css?v=20260625" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="icon" href="./favicon.png" />
   <style>
     .wrap { width: 100%; max-width: 700px; padding: 0 20px; box-sizing: border-box; margin: 0 auto; }
@@ -19,8 +21,6 @@
     .field textarea { resize: vertical; line-height: 1.5; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; }
     .row .field { flex: 1; min-width: 180px; }
-
-    /* unified editor buttons (replaces the wonky flex:1 .like-button look) */
     .ed-btn {
       height: 38px; padding: 0 14px; font-size: 15px; line-height: 1;
       border-radius: 8px; background: transparent; border: 1px solid #aaa;
@@ -34,7 +34,6 @@
     .ed-btn.primary:hover { background-color: #52c1341f; }
     .ed-btn.danger { border-color: #d9a3a3; color: #8B0000; }
     .ed-btn.danger:hover { background-color: #8b00000f; }
-
     .mode-bar { display: flex; gap: 8px; margin-bottom: 1.5rem; }
     .actions { display: flex; gap: 8px; margin: 1rem 0; flex-wrap: wrap; align-items: center; }
     .msg { font-family: noto-sans, sans-serif; font-size: 14px; margin: 8px 0; min-height: 1em; }
@@ -44,14 +43,11 @@
     .thumbs img { width: 100%; border-radius: 6px; }
     .thumbs figcaption { font-size: 10px; color: #757575; }
     .preview { border-top: 1px solid #5252527b; margin-top: 1.5rem; padding-top: 1rem; }
-
     .section {
       border: 1px solid #e2dcc7; border-radius: 10px; padding: 14px; margin-bottom: 14px;
       background: #ffd82c12;
     }
-    .section > .section-title {
-      font-family: noto-sans, sans-serif; font-size: 14px; color: #757575; margin-bottom: 10px;
-    }
+    .section > .section-title { font-family: noto-sans, sans-serif; font-size: 14px; color: #757575; margin-bottom: 10px; }
     .checkbox-row { display: flex; align-items: center; gap: 8px; font-family: noto-sans, sans-serif; font-size: 15px; color: #4a4a4a; }
     .places-list { list-style: none; padding: 0; margin: 10px 0 0; }
     .places-list li {
@@ -61,6 +57,12 @@
     }
     .places-list li .pl-text { flex: 1; }
     .places-list li strong { color: #020202; }
+    #pv-map { width: 100%; height: 280px; border-radius: 8px; margin: 1rem 0; display: none; }
+    .pv-tag {
+      font-family: noto-sans, sans-serif; font-size: 13px; color: #6b6b6b;
+      padding: 2px 10px; border: 1px solid #d8d2bd; border-radius: 999px;
+      background: #ffd82c1c; display: inline-block; margin: 2px 2px 2px 0;
+    }
   </style>
 </head>
 <body>
@@ -97,7 +99,6 @@
         <div class="field"><label>Autor:in</label><input id="author" /></div>
       </div>
       <div class="field"><label>Datum (wie es angezeigt wird)</label><input id="date" /></div>
-
       <div class="field">
         <label>Tags (mit Komma getrennt, z. B. bücher, sommer)</label>
         <input id="tags" placeholder="bücher, sommer" />
@@ -122,14 +123,11 @@
         </label>
 
         <div id="guide-fields" style="display:none">
-          <!-- live search -->
           <div class="field" style="position:relative">
             <label>Ort suchen (Name, Adresse oder beides)</label>
             <input id="place-search" placeholder="Café Faro Berlin" autocomplete="off" />
             <div id="search-results" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:#fffdf3;border:1px solid #d8d2bd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);overflow:hidden;margin-top:2px"></div>
           </div>
-
-          <!-- manual fallback -->
           <details style="margin-bottom:10px">
             <summary style="font-family:noto-sans,sans-serif;font-size:13px;color:#757575;cursor:pointer;user-select:none">
               Nicht gefunden? Adresse manuell eingeben
@@ -139,7 +137,6 @@
               <input id="place-address" placeholder="Mehringdamm 57, Berlin" />
             </div>
           </details>
-
           <div class="field"><label>Name (wie er auf der Karte erscheint)</label><input id="place-name" placeholder="Café Faro" /></div>
           <div class="field"><label>Notiz</label><input id="place-note" placeholder="bestes Frühstück" /></div>
           <button class="ed-btn" id="add-place" type="button">+ Ort hinzufügen</button>
@@ -165,7 +162,9 @@
         <p style="font-size:14px;color:#757575">Vorschau</p>
         <h1 id="pv-title"></h1>
         <p><strong id="pv-author"></strong> am <em id="pv-date"></em></p>
+        <div id="pv-tags" style="margin:6px 0 10px"></div>
         <div class="post-content" id="pv-body"></div>
+        <div id="pv-map"></div>
       </div>
     </div>
   </div>
@@ -180,12 +179,13 @@
     let pw = sessionStorage.getItem("wmds_pw") || "";
     let postId = "";
     let cover = "";
-    let mode = "new";       // new | edit | draft
+    let mode = "new";
     let places = [];
+    let previewMap = null;
 
     const $ = (id) => document.getElementById(id);
 
-    // ---- login (now actually verified against the worker) ----
+    // ---- login ----
     if (pw) {
       fetch(`${API}/admin/check`, { headers: { Authorization: `Bearer ${pw}` } })
         .then((r) => { if (r.ok) showEditor(); else { sessionStorage.removeItem("wmds_pw"); pw = ""; } })
@@ -269,12 +269,10 @@
         $("date").value = post.date;
         $("body").value = post.body_html;
         $("thumbs").innerHTML = "";
-        // tags + guide
         const tags = post.tags || [];
         $("is-guide").checked = tags.includes("guides");
         $("guide-fields").style.display = tags.includes("guides") ? "block" : "none";
         $("tags").value = tags.filter((t) => t !== "guides").join(", ");
-        // places
         places = Array.isArray(post.places) ? post.places.slice() : [];
         renderPlaces();
         refreshPreview();
@@ -309,19 +307,43 @@
       if (mode !== "new") $("post-select").value = "";
     }
 
-    // ---- preview + helpers ----
+    // ---- preview ----
     $("para-btn").onclick = () => {
       const t = $("body");
       t.value += (t.value ? "\n" : "") + "<p>\n  \n</p> <br>\n";
       refreshPreview();
     };
-    ["body","title","author","date"].forEach((idn) => $(idn).addEventListener("input", refreshPreview));
+    ["body","title","author","date","tags"].forEach((idn) => {
+      const el = $(idn); if (el) el.addEventListener("input", refreshPreview);
+    });
+    $("is-guide").addEventListener("change", refreshPreview);
 
     function refreshPreview() {
       $("pv-title").textContent = $("title").value || "(Titel)";
       $("pv-author").textContent = "von " + ($("author").value || "…");
       $("pv-date").textContent = $("date").value || "";
       $("pv-body").innerHTML = $("body").value;
+
+      // tags
+      const tags = collectTags();
+      $("pv-tags").innerHTML = tags.map((t) => `<span class="pv-tag">${t}</span>`).join("");
+
+      // map
+      const mapEl = $("pv-map");
+      if (previewMap) { previewMap.remove(); previewMap = null; }
+      if (places.length === 0) { mapEl.style.display = "none"; return; }
+      mapEl.style.display = "block";
+      previewMap = L.map("pv-map");
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap", maxZoom: 19,
+      }).addTo(previewMap);
+      const coords = places.map((p) => {
+        L.marker([p.lat, p.lng]).addTo(previewMap)
+          .bindPopup(`<strong>${p.name}</strong>${p.note ? "<br>" + p.note : ""}`);
+        return [p.lat, p.lng];
+      });
+      if (coords.length === 1) previewMap.setView(coords[0], 14);
+      else previewMap.fitBounds(coords, { padding: [40, 40] });
     }
 
     function todayDE() {
@@ -342,10 +364,9 @@
       $("guide-fields").style.display = $("is-guide").checked ? "block" : "none";
     });
 
-    // ---- places (live search via Nominatim, address fallback) ----
+    // ---- places ----
     let pendingLat = null, pendingLng = null;
     let searchTimer = null;
-
     const searchInput = $("place-search");
     const searchDropdown = $("search-results");
 
@@ -357,11 +378,7 @@
       if (q.length < 3) { closeDropdown(); return; }
       searchTimer = setTimeout(() => runSearch(q), 400);
     });
-
-    searchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeDropdown();
-    });
-
+    searchInput.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDropdown(); });
     document.addEventListener("click", (e) => {
       if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) closeDropdown();
     });
@@ -403,17 +420,10 @@
       const name = $("place-name").value.trim();
       const note = $("place-note").value.trim();
       if (!name) { setMsg("err", "Name für den Ort angeben."); return; }
-
-      let lat = pendingLat;
-      let lng = pendingLng;
-
-      // fallback: geocode manual address if no result was picked
+      let lat = pendingLat, lng = pendingLng;
       if (lat === null) {
         const addr = $("place-address") ? $("place-address").value.trim() : "";
-        if (!addr) {
-          setMsg("err", "Bitte einen Ort aus der Suche auswählen, oder Adresse manuell eingeben.");
-          return;
-        }
+        if (!addr) { setMsg("err", "Bitte einen Ort aus der Suche auswählen, oder Adresse manuell eingeben."); return; }
         try {
           const r = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`,
@@ -421,17 +431,14 @@
           );
           const hits = await r.json();
           if (!hits.length) { setMsg("err", "Adresse nicht gefunden."); return; }
-          lat = parseFloat(hits[0].lat);
-          lng = parseFloat(hits[0].lon);
+          lat = parseFloat(hits[0].lat); lng = parseFloat(hits[0].lon);
         } catch { setMsg("err", "Adresssuche fehlgeschlagen."); return; }
       }
-
       places.push({ name, lat, lng, note });
       renderPlaces();
       searchInput.value = ""; $("place-name").value = ""; $("place-note").value = "";
       if ($("place-address")) $("place-address").value = "";
-      closeDropdown();
-      pendingLat = null; pendingLng = null;
+      closeDropdown(); pendingLat = null; pendingLng = null;
       setMsg("ok", `„${name}" hinzugefügt.`);
     };
 
@@ -444,10 +451,11 @@
         const rm = document.createElement("button");
         rm.className = "ed-btn danger"; rm.style.height = "30px"; rm.style.padding = "0 10px";
         rm.textContent = "×"; rm.type = "button";
-        rm.onclick = () => { places.splice(i, 1); renderPlaces(); };
+        rm.onclick = () => { places.splice(i, 1); renderPlaces(); refreshPreview(); };
         li.appendChild(rm);
         ul.appendChild(li);
       });
+      refreshPreview();
     }
 
     // ---- image resize + upload ----
@@ -499,7 +507,7 @@
     }
 
     async function uploadFiles(files) {
-      const id = await ensurePost(true);   // attaching images keeps it a draft until published
+      const id = await ensurePost(true);
       for (const file of files) {
         const blob = await resizeImage(file);
         const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
@@ -573,6 +581,7 @@
       };
       $("thumbs").appendChild(fig);
     }
+
     function setMsg(kind, text) {
       const m = $("msg");
       m.className = "msg " + kind;
