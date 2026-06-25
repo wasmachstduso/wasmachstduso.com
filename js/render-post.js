@@ -1,8 +1,7 @@
-// Renders a single post fetched from the content worker, and wires up the
-// existing likes / views / comments / share Workers using the same per-post IDs
-// as before (so existing counts and threads stay attached).
+// Renders a single post: body, tags, optional guide map, and the existing
+// likes / comments / share Workers (same per-post IDs as before).
 
-const API = window.location.hostname === "localhost"
+const API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
   ? "http://localhost:8787/api"
   : "/api";
 const WORKER_BASE = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
@@ -35,11 +34,34 @@ async function main() {
 
   document.title = post.title;
   const commentId = post.comment_id || transliterate(id);
+  const tags = post.tags || [];
+  const places = post.places || [];
+
+  const tagsHtml = tags.length
+    ? `<div class="tags">${tags.map((t) => `<a class="tag" href="/?tag=${encodeURIComponent(t)}">${escapeHtml(t)}</a>`).join("")}</div>`
+    : "";
+
+  const mapHtml = places.length
+    ? `<div id="map"></div>
+       <ul class="places-list">${places.map((p) => `
+        <li>
+          <span class="pl-text" style="flex:1"><strong>${escapeHtml(p.name)}</strong>${p.note ? ` — <span>${escapeHtml(p.note)}</span>` : ""}</span>
+          <a href="https://maps.apple.com/?ll=${p.lat},${p.lng}&q=${encodeURIComponent(p.name)}"
+             target="_blank" rel="noopener"
+             style="flex-shrink:0;display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 10px;font-size:13px;border-radius:7px;border:1px solid #aaa;font-family:noto-sans,sans-serif;color:#333;text-decoration:none;white-space:nowrap"
+             onmouseover="this.style.backgroundColor='#fdc0324f'" onmouseout="this.style.backgroundColor=''">
+            📍 Maps
+          </a>
+        </li>`).join("")}
+       </ul>`
+    : "";
 
   el.innerHTML = `
     <h1>${escapeHtml(post.title)}</h1>
     <p><strong>von ${escapeHtml(post.author)}</strong> am <em>${escapeHtml(post.date)}</em></p>
+    ${tagsHtml}
     <div class="post-content">${post.body_html}</div>
+    ${mapHtml}
     <div class="post-interaction">
       <button class="like-button" onclick="window.location.href='/'">🏠 start</button>
       <button class="like-button" id="like-btn">❤️ like (<span id="like-count">0</span>)</button>
@@ -47,6 +69,8 @@ async function main() {
     </div>
     <div id="comments-root"></div>
   `;
+
+  if (places.length) renderMap(places);
 
   // likes
   const likeCount = document.getElementById("like-count");
@@ -69,6 +93,22 @@ async function main() {
   renderComments(commentId);
 }
 
+function renderMap(places) {
+  const map = L.map("map");
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap",
+    maxZoom: 19,
+  }).addTo(map);
+  const markers = [];
+  places.forEach((p) => {
+    const m = L.marker([p.lat, p.lng]).addTo(map);
+    m.bindPopup(`<strong>${p.name}</strong>${p.note ? "<br>" + p.note : ""}`);
+    markers.push([p.lat, p.lng]);
+  });
+  if (markers.length === 1) map.setView(markers[0], 14);
+  else map.fitBounds(markers, { padding: [40, 40] });
+}
+
 function renderComments(commentId) {
   const root = document.getElementById("comments-root");
   root.innerHTML = `
@@ -85,9 +125,8 @@ function renderComments(commentId) {
       <div id="comments-list" style="padding-top:10px;padding-bottom:30px">Kein Kommentar.</div>
     </div>`;
 
- const base = (location.hostname === "localhost" || location.hostname === "127.0.0.1"
-  ? "https://wasmachstduso.com"
-  : location.origin) + "/comments";
+  const base = (location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "https://wasmachstduso.com" : location.origin) + "/comments";
   const list = document.getElementById("comments-list");
 
   function load() {

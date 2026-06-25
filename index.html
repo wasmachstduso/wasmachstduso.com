@@ -3,28 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://use.typekit.net/vya7gle.css">
-  <link rel="stylesheet" type="text/css" href="./assets/css/style.css?v=20251207">
+  <link rel="stylesheet" type="text/css" href="./assets/css/style.css?v=20260625">
   <link rel="icon" href="./favicon.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>wmds?</title>
   <link rel="alternate" type="application/rss+xml" title="was machst du so?" href="/rss.xml" />
+  <style>
+    .topbar {
+      display: flex; align-items: center; gap: 14px;
+      width: 100%; position: relative;
+    }
+    .topbar h3 { flex: 1; margin: 0; }
+    .burger {
+      flex: 0 0 auto; width: 42px; height: 42px;
+      display: inline-flex; flex-direction: column; justify-content: center; gap: 5px;
+      background: transparent; border: 1px solid #aaa; border-radius: 8px;
+      cursor: pointer; padding: 0 10px; transition: background-color .2s ease;
+    }
+    .burger:hover { background-color: #fdc0324f; }
+    .burger span { display: block; height: 2px; background: #020202; border-radius: 2px; }
+    .menu {
+      display: none; position: absolute; top: 52px; left: 0; z-index: 20;
+      min-width: 200px; background: #fffdf3; border: 1px solid #ccc; border-radius: 10px;
+      box-shadow: 0 6px 20px rgba(148,89,0,.12); padding: 8px; overflow: hidden;
+    }
+    .menu.open { display: block; }
+    .menu a, .menu button {
+      display: block; width: 100%; text-align: left; box-sizing: border-box;
+      font-family: noto-sans, sans-serif; font-size: 16px; font-weight: 300; color: #4a4a4a;
+      padding: 9px 12px; border: none; background: transparent; border-radius: 7px; cursor: pointer;
+    }
+    .menu a:hover, .menu button:hover { background-color: #fdc0324f; text-decoration: none; }
+    .menu .sub { padding-left: 22px; font-size: 14px; color: #6b6b6b; }
+    .menu .divider { height: 1px; background: #e2dcc7; margin: 6px 4px; }
+    .menu .label { font-size: 12px; color: #999; padding: 6px 12px 2px; font-family: noto-sans, sans-serif; }
+    .filter-note {
+      font-family: noto-sans, sans-serif; font-size: 14px; color: #757575;
+      margin-top: 1rem; display: none;
+    }
+    .filter-note a { color: #FAB95F; }
+    .menu-expand {
+      display: block; width: 100%; text-align: left; box-sizing: border-box;
+      font-family: noto-sans, sans-serif; font-size: 16px; font-weight: 300; color: #4a4a4a;
+      padding: 9px 12px; border: none; background: transparent; border-radius: 7px; cursor: pointer;
+    }
+    .menu-expand:hover { background-color: #fdc0324f; }
+    #tags-arrow { float: right; transition: transform .2s ease; display: inline-block; }
+    #tags-arrow.open { transform: rotate(90deg); }
+  </style>
 </head>
 
 <body>
   <div class="page-container">
-    <h3>was machst du so?</h3>
+    <div class="topbar">
+      <button class="burger" id="burger" aria-label="Menü">
+        <span></span><span></span><span></span>
+      </button>
+      <h3>was machst du so?</h3>
+
+      <div class="menu" id="menu">
+        <a href="/">Beiträge</a>
+        <a href="/?view=guides">Guides</a>
+        <button class="menu-expand" id="tags-toggle" style="display:none">
+          Tags <span id="tags-arrow">›</span>
+        </button>
+        <div id="tag-list" style="display:none"></div>
+        <div class="divider"></div>
+        <a href="mailto:hallo@wasmachstduso.com">Schreib uns!</a>
+      </div>
+    </div>
+
+    <p class="filter-note" id="filter-note"></p>
 
     <!-- Blog post tiles are inserted here -->
     <div id="post-grid"></div>
     <button id="load-more" style="display: none;">Mehr laden</button>
 
-
     <div class="footer">
-      &copy; 2025 wmds |
-      <a class="style4" href="mailto:hallo@wasmachstduso.com">Schreib uns!</a>
+      &copy; 2026 wmds |
+      <a class="style4" href="mailto:hallo@wasmachstduso.com">Schreib uns!</a> |
+      <a class="style4" href="/impressum.html">Impressum</a> |
+      <a class="style4" href="/datenschutz.html">Datenschutz</a>
     </div>
-
   </div>
+
   <script src="./js/load-posts.js"></script>
+  <script>
+    // burger toggle
+    const burger = document.getElementById("burger");
+    const menu = document.getElementById("menu");
+    burger.addEventListener("click", (e) => { e.stopPropagation(); menu.classList.toggle("open"); });
+    document.addEventListener("click", (e) => {
+      if (!menu.contains(e.target) && e.target !== burger) menu.classList.remove("open");
+    });
+  </script>
 </body>
 </html>
