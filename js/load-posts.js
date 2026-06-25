@@ -82,14 +82,20 @@ function buildTagMenu(posts) {
   posts.forEach((p) => (p.tags || []).forEach((t) => { if (t !== "guides") tags.add(t); }));
   const list = document.getElementById("tag-list");
   const toggle = document.getElementById("tags-toggle");
-  if (!list) return;
-  if (tags.size === 0) { if (toggle) toggle.style.display = "none"; return; }
-  if (toggle) toggle.style.display = "block";
+  if (!list || !toggle) return;
+  if (tags.size === 0) { toggle.style.display = "none"; return; }
+  toggle.style.display = "block";
   [...tags].sort().forEach((t) => {
     const a = document.createElement("a");
     a.className = "sub";
     a.href = `/?tag=${encodeURIComponent(t)}`;
     a.textContent = t;
     list.appendChild(a);
+  });
+  toggle.addEventListener("click", () => {
+    const open = list.style.display !== "none";
+    list.style.display = open ? "none" : "block";
+    const arrow = document.getElementById("tags-arrow");
+    if (arrow) arrow.classList.toggle("open", !open);
   });
 }
