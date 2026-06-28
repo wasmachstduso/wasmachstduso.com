@@ -269,6 +269,22 @@
         $("date").value = post.date;
         $("body").value = post.body_html;
         $("thumbs").innerHTML = "";
+        // rebuild thumbs from existing images in the body
+        const imgMatches = (post.body_html || "").matchAll(/<img[^>]+src="([^"]+)"/g);
+        for (const m of imgMatches) {
+          const url = m[1];
+          const fig = document.createElement("figure");
+          fig.innerHTML = `<img src="${url}"><figcaption><a href="#" class="style4" style="font-size:10px">als Cover</a></figcaption>`;
+          fig.querySelector("a").onclick = (e) => {
+            e.preventDefault();
+            cover = url;
+            document.querySelectorAll("#thumbs figure").forEach((f) => (f.style.outline = "none"));
+            fig.style.outline = "2px solid #52c134";
+            setMsg("ok", "Cover gesetzt.");
+          };
+          if (cover && url === cover) fig.style.outline = "2px solid #52c134";
+          $("thumbs").appendChild(fig);
+        }
         const tags = post.tags || [];
         $("is-guide").checked = tags.includes("guides");
         $("guide-fields").style.display = tags.includes("guides") ? "block" : "none";
@@ -299,6 +315,7 @@
     };
 
     function resetForm() {
+      setMsg("", "");
       postId = ""; cover = ""; places = [];
       $("title").value = ""; $("author").value = ""; $("date").value = todayDE();
       $("body").value = ""; $("tags").value = ""; $("is-guide").checked = false;
