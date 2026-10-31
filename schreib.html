@@ -324,7 +324,7 @@
       if (!id) { resetForm(); return; }
       setMsg("", "");
       try {
-        const res = await fetch(`${API}/posts/${encodeURIComponent(id)}`);
+        const res = await adminFetch(`${API}/admin/posts/${encodeURIComponent(id)}`);
         if (!res.ok) throw new Error();
         const post = await res.json();
         postId = post.id;
