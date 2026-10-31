@@ -75,7 +75,7 @@
         <label>Passwort</label>
         <input id="pw" type="password" autocomplete="current-password" />
       </div>
-      <div id="login-msg" class="msg err" style="display:none">Falsches Passwort.</div>
+      <div id="login-msg" class="msg err" style="display:none"></div>
       <button class="ed-btn" id="login-btn">einloggen</button>
       <div class="footer"><a class="style4" href="/">zurück</a></div>
     </div>
@@ -108,9 +108,10 @@
         <label>Text — HTML erlaubt (&lt;p&gt;…&lt;/p&gt; &lt;br&gt;)</label>
         <div id="dropzone" style="position:relative">
           <textarea id="body" rows="12" placeholder="<p>Hallo …</p>"></textarea>
-          <div id="drop-overlay" style="display:none;position:absolute;inset:0;border-radius:8px;border:2px dashed #757575;background:rgba(255,255,255,0.7);align-items:center;justify-content:center;font-family:noto-sans,sans-serif;font-size:14px;color:#757575;pointer-events:none">
+          <div id="drop-overlay" style="display:none;position:absolute;inset:0;border-radius:8px;border:2px dashed #757575;background:rgba(255,255,255,0.35);align-items:flex-start;justify-content:center;padding-top:8px;box-sizing:border-box;font-family:noto-sans,sans-serif;font-size:14px;color:#757575;pointer-events:none">
             Fotos hier ablegen
           </div>
+          <div id="drop-marker" style="display:none;position:absolute;width:3px;border-radius:2px;background:#f0a800;pointer-events:none;z-index:2"></div>
         </div>
       </div>
 
@@ -176,7 +177,7 @@
     const MAX_EDGE = 1600;
     const JPEG_QUALITY = 0.82;
 
-    let pw = sessionStorage.getItem("wmds_pw") || "";
+    let token = sessionStorage.getItem("wmds_token") || "";   // session token, never the password
     let postId = "";
     let cover = "";
     let mode = "new";
@@ -185,26 +186,91 @@
 
     const $ = (id) => document.getElementById(id);
 
-    // ---- login ----
-    if (pw) {
-      fetch(`${API}/admin/check`, { headers: { Authorization: `Bearer ${pw}` } })
-        .then((r) => { if (r.ok) showEditor(); else { sessionStorage.removeItem("wmds_pw"); pw = ""; } })
-        .catch(() => {});
+    // ---- login / session ----
+    // The password is only sent once to /admin/login. The server answers with a signed token that
+    // expires after 30 min of inactivity (12 h max) and is refreshed on every admin request.
+    const ACTIVITY_PING_MS = 5 * 60 * 1000;
+    let sessionExp = Number(sessionStorage.getItem("wmds_exp") || 0);  // unix seconds
+    let lastPing = 0;
+
+    function setSession(tok, exp) {
+      token = tok; sessionExp = exp;
+      if (tok) { sessionStorage.setItem("wmds_token", tok); sessionStorage.setItem("wmds_exp", String(exp)); }
+      else { sessionStorage.removeItem("wmds_token"); sessionStorage.removeItem("wmds_exp"); }
     }
 
-    $("login-btn").onclick = async () => {
-      const entered = $("pw").value;
+    // fetch for admin endpoints: adds the token, keeps it fresh, locks the editor on 401
+    async function adminFetch(url, opts = {}) {
+      const r = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: `Bearer ${token}` } });
+      const fresh = r.headers.get("X-Session-Token");
+      if (fresh) setSession(fresh, Number(r.headers.get("X-Session-Exp")));
+      lastPing = Date.now();
+      if (r.status === 401) {
+        lockEditor("Sitzung abgelaufen — bitte neu einloggen. Deine Eingaben bleiben erhalten.");
+        throw new Error("Sitzung abgelaufen — bitte neu einloggen und erneut versuchen.");
+      }
+      return r;
+    }
+
+    // back to the login screen, but keep whatever has been typed so nothing is lost
+    function lockEditor(message) {
+      setSession("", 0);
+      $("editor").style.display = "none";
+      $("login").style.display = "block";
+      $("pw").value = "";
+      showLoginMsg(message);
+    }
+    function showLoginMsg(text) {
+      const m = $("login-msg");
+      m.textContent = text || "";
+      m.style.display = text ? "block" : "none";
+    }
+
+    if (token && sessionExp * 1000 > Date.now()) {
+      adminFetch(`${API}/admin/check`).then((r) => { if (r.ok) showEditor(); }).catch(() => {});
+    } else if (token) {
+      setSession("", 0);
+    }
+
+    async function doLogin() {
+      showLoginMsg("");
       try {
-        const r = await fetch(`${API}/admin/check`, { headers: { Authorization: `Bearer ${entered}` } });
-        if (!r.ok) throw new Error();
-        pw = entered;
-        sessionStorage.setItem("wmds_pw", pw);
+        const r = await fetch(`${API}/admin/login`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: $("pw").value }),
+        });
+        if (r.status === 401) return showLoginMsg("Falsches Passwort.");
+        if (r.status === 429) return showLoginMsg("Zu viele Fehlversuche — bitte in 15 Minuten erneut versuchen.");
+        if (!r.ok) return showLoginMsg(`Login nicht möglich (Serverantwort ${r.status}). Liegt es an einer Firewall-Regel oder am Worker?`);
+        const { token: tok, exp } = await r.json();
+        setSession(tok, exp);
+        $("pw").value = "";
         showEditor();
       } catch {
-        $("login-msg").style.display = "block";
+        showLoginMsg("Server nicht erreichbar.");
       }
-    };
-    $("logout-btn").onclick = () => { sessionStorage.removeItem("wmds_pw"); location.reload(); };
+    }
+    $("login-btn").onclick = doLogin;
+    $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+    $("logout-btn").onclick = () => { setSession("", 0); location.reload(); };
+
+    // keep the session alive while the editor is actually being used (typing, clicking)
+    function activity() {
+      if (!token || Date.now() - lastPing < ACTIVITY_PING_MS) return;
+      lastPing = Date.now();
+      adminFetch(`${API}/admin/check`).catch(() => {});
+    }
+    ["keydown", "pointerdown"].forEach((ev) => document.addEventListener(ev, activity, { passive: true }));
+    // a tab left in the background: lock as soon as it expired, re-validate when it comes back
+    function expiryCheck() {
+      if (token && sessionExp * 1000 <= Date.now()) lockEditor("Sitzung abgelaufen — bitte neu einloggen. Deine Eingaben bleiben erhalten.");
+    }
+    setInterval(expiryCheck, 15000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible" || !token) return;
+      expiryCheck();
+      if (token) adminFetch(`${API}/admin/check`).catch(() => {});
+    });
 
     function showEditor() {
       $("login").style.display = "none";
@@ -236,9 +302,8 @@
 
     async function loadList(m) {
       const url = m === "draft" ? `${API}/admin/drafts` : `${API}/posts`;
-      const opts = m === "draft" ? { headers: { Authorization: `Bearer ${pw}` } } : {};
       try {
-        const res = await fetch(url, opts);
+        const res = m === "draft" ? await adminFetch(url) : await fetch(url);
         const items = await res.json();
         const sel = $("post-select");
         sel.innerHTML = '<option value="">— bitte wählen —</option>';
@@ -303,9 +368,7 @@
       const title = $("title").value || postId;
       if (!confirm(`„${title}" wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return;
       try {
-        const r = await fetch(`${API}/admin/posts/${encodeURIComponent(postId)}`, {
-          method: "DELETE", headers: { Authorization: `Bearer ${pw}` },
-        });
+        const r = await adminFetch(`${API}/admin/posts/${encodeURIComponent(postId)}`, { method: "DELETE" });
         if (r.status === 401) throw new Error("Falsches Passwort.");
         if (!r.ok) throw new Error(await r.text());
         setMsg("ok", `„${title}" gelöscht.`);
@@ -325,9 +388,23 @@
     }
 
     // ---- preview ----
+    // insert text into the body textarea at pos; returns the position after the inserted text
+    function insertAt(text, pos) {
+      const t = $("body");
+      pos = Math.max(0, Math.min(pos, t.value.length));
+      if (pos > 0 && t.value[pos - 1] !== "\n") text = "\n" + text;
+      t.value = t.value.slice(0, pos) + text + t.value.slice(pos);
+      return pos + text.length;
+    }
+
     $("para-btn").onclick = () => {
       const t = $("body");
-      t.value += (t.value ? "\n" : "") + "<p>\n  \n</p> <br>\n";
+      const pos = t.selectionStart;
+      const snippet = "<p>\n  \n</p> <br>\n";
+      const end = insertAt(snippet, pos);
+      const caret = end - snippet.length + "<p>\n  ".length;
+      t.focus();
+      t.setSelectionRange(caret, caret);
       refreshPreview();
     };
     ["body","title","author","date","tags"].forEach((idn) => {
@@ -502,9 +579,9 @@
       const title = $("title").value.trim();
       const author = $("author").value.trim();
       if (!title || !author) throw new Error("Titel und Autor:in zuerst ausfüllen.");
-      const res = await fetch(`${API}/admin/posts`, {
+      const res = await adminFetch(`${API}/admin/posts`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${pw}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: postId || undefined,
           title, author,
@@ -523,19 +600,21 @@
       return data.id;
     }
 
-    async function uploadFiles(files) {
+    async function uploadFiles(files, pos = $("body").selectionStart) {
       const id = await ensurePost(true);
       for (const file of files) {
-        const blob = await resizeImage(file);
-        const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-        const r = await fetch(`${API}/admin/upload?post=${encodeURIComponent(id)}`, {
+        // GIFs are uploaded untouched (canvas would flatten them to one frame)
+        const isGif = file.type === "image/gif";
+        const blob = isGif ? file : await resizeImage(file);
+        const name = isGif ? file.name : file.name.replace(/\.[^.]+$/, "") + ".jpg";
+        const r = await adminFetch(`${API}/admin/upload?post=${encodeURIComponent(id)}`, {
           method: "POST",
-          headers: { "Content-Type": "image/jpeg", "X-Filename": name, Authorization: `Bearer ${pw}` },
+          headers: { "Content-Type": isGif ? "image/gif" : "image/jpeg", "X-Filename": name },
           body: blob,
         });
         if (!r.ok) throw new Error(await r.text());
         const { url } = await r.json();
-        $("body").value += ($("body").value ? "\n" : "") + `<img class="post-img" loading="lazy" src="${url}">\n`;
+        pos = insertAt(`<img class="post-img" loading="lazy" src="${url}">\n`, pos);
         if (!cover) cover = url;
         addThumb(url, blob.size, file.size);
       }
@@ -546,7 +625,7 @@
       const files = Array.from(e.target.files || []);
       if (!files.length) return;
       setMsg("", "");
-      try { await uploadFiles(files); setMsg("ok", "Bilder verkleinert, hochgeladen und eingefügt."); }
+      try { await uploadFiles(files); setMsg("ok", "Bilder hochgeladen und eingefügt (GIFs unverändert)."); }
       catch (err) { setMsg("err", err.message); }
       finally { e.target.value = ""; }
     };
@@ -573,16 +652,92 @@
     // ---- drag and drop ----
     const dropzone = $("dropzone");
     const overlay = $("drop-overlay");
-    dropzone.addEventListener("dragenter", (e) => { e.preventDefault(); overlay.style.display = "flex"; });
-    dropzone.addEventListener("dragover",  (e) => { e.preventDefault(); overlay.style.display = "flex"; });
-    dropzone.addEventListener("dragleave", (e) => { if (!dropzone.contains(e.relatedTarget)) overlay.style.display = "none"; });
+    const marker = $("drop-marker");
+    const bodyEl = $("body");
+    let mirror = null;
+
+    // Which character offset in the textarea is closest to the viewport point (x, y)?
+    // Textareas have no caret-from-point API, so lay the text out in an identical hidden div and measure.
+    function caretFromPoint(x, y) {
+      const cs = getComputedStyle(bodyEl);
+      const r = bodyEl.getBoundingClientRect();
+      if (!mirror) {
+        mirror = document.createElement("div");
+        mirror.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;white-space:pre-wrap;overflow-wrap:break-word;overflow:hidden;margin:0;";
+        document.body.appendChild(mirror);
+      }
+      for (const p of ["fontFamily","fontSize","fontWeight","lineHeight","letterSpacing","wordSpacing","tabSize",
+                       "paddingTop","paddingRight","paddingBottom","paddingLeft",
+                       "borderTopWidth","borderRightWidth","borderBottomWidth","borderLeftWidth","boxSizing"]) {
+        mirror.style[p] = cs[p];
+      }
+      mirror.style.borderStyle = "solid"; mirror.style.borderColor = "transparent";
+      mirror.style.left = r.left + "px"; mirror.style.top = r.top + "px";
+      mirror.style.width = bodyEl.clientWidth + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth) + "px";
+      mirror.style.height = r.height + "px";
+      const text = bodyEl.value;
+      mirror.textContent = text;
+      mirror.scrollTop = bodyEl.scrollTop;
+      const node = mirror.firstChild;
+      let best = { pos: text.length, score: Infinity, rect: null };
+      if (node) {
+        const range = document.createRange();
+        const consider = (pos, left, top, bottom) => {
+          const dy = y < top ? top - y : y > bottom ? y - bottom : 0;
+          const score = dy * 1000 + Math.abs(x - left);
+          if (score < best.score) best = { pos, score, rect: { left, top, bottom } };
+        };
+        for (let i = 0; i < text.length; i++) {
+          range.setStart(node, i); range.setEnd(node, i + 1);
+          const rc = range.getClientRects()[0];
+          if (!rc) continue;
+          consider(i, rc.left, rc.top, rc.bottom);
+          // right edge of a line's last char (before a newline or at the end of the text)
+          if (i === text.length - 1 || text[i + 1] === "\n") consider(i + 1, rc.right, rc.top, rc.bottom);
+        }
+      }
+      if (!best.rect) { // empty textarea
+        const pad = parseFloat(cs.paddingTop), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+        best.rect = { left: r.left + parseFloat(cs.paddingLeft), top: r.top + pad, bottom: r.top + pad + lh };
+      }
+      return { pos: best.pos, rect: best.rect };
+    }
+
+    function hideMarker() { marker.style.display = "none"; }
+    let dragPending = false, dragXY = null;
+    function updateMarker() {
+      dragPending = false;
+      if (!dragXY) return;
+      const { rect } = caretFromPoint(dragXY.x, dragXY.y);
+      const dz = dropzone.getBoundingClientRect(), t = bodyEl.getBoundingClientRect();
+      // hide when the target line is scrolled out of view
+      if (rect.bottom < t.top || rect.top > t.bottom) { hideMarker(); return; }
+      marker.style.left = rect.left - dz.left - 1 + "px";
+      marker.style.top = Math.max(rect.top, t.top) - dz.top + "px";
+      marker.style.height = Math.min(rect.bottom, t.bottom) - Math.max(rect.top, t.top) + "px";
+      marker.style.display = "block";
+    }
+    function onDrag(e) {
+      if (!Array.from(e.dataTransfer.types || []).includes("Files")) return;
+      e.preventDefault();
+      overlay.style.display = "flex";
+      dragXY = { x: e.clientX, y: e.clientY };
+      if (!dragPending) { dragPending = true; requestAnimationFrame(updateMarker); }
+    }
+    dropzone.addEventListener("dragenter", onDrag);
+    dropzone.addEventListener("dragover", onDrag);
+    dropzone.addEventListener("dragleave", (e) => {
+      if (!dropzone.contains(e.relatedTarget)) { overlay.style.display = "none"; hideMarker(); dragXY = null; }
+    });
     dropzone.addEventListener("drop", async (e) => {
       e.preventDefault();
       overlay.style.display = "none";
+      hideMarker(); dragXY = null;
       const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
       if (!files.length) return;
+      const { pos } = caretFromPoint(e.clientX, e.clientY);
       setMsg("", "");
-      try { await uploadFiles(files); setMsg("ok", "Bilder verkleinert, hochgeladen und eingefügt."); }
+      try { await uploadFiles(files, pos); setMsg("ok", "Bilder hochgeladen und eingefügt (GIFs unverändert)."); }
       catch (err) { setMsg("err", err.message); }
     });
 
